@@ -24,10 +24,12 @@ public class NotesPage {
     public NotesPage(WebDriver driver) {
 
         this.driver = driver;
-        this.wait = new WebDriverWait(
-                driver,
-                Duration.ofSeconds(20)
-        );
+
+        this.wait =
+                new WebDriverWait(
+                        driver,
+                        Duration.ofSeconds(20)
+                );
     }
 
     // =========================================================
@@ -40,13 +42,17 @@ public class NotesPage {
     private By notesGrid =
             By.cssSelector(".notes-list-grid");
 
+    // Image inside preview
     private By noteImage =
             By.cssSelector(".note-preview-page img");
 
     // Example: 1 / 58
     private By pageCounter =
-            By.cssSelector(".note-preview-navigation span");
+            By.cssSelector(
+                    ".note-preview-navigation span"
+            );
 
+    // Next button
     private By nextButton =
             By.cssSelector(
                     ".note-preview-navigation button:last-child"
@@ -129,7 +135,9 @@ public class NotesPage {
         // ---------------------------------------------------------
 
         WebElement button =
-                card.findElement(previewButton);
+                card.findElement(
+                        previewButton
+                );
 
         // ---------------------------------------------------------
         // SCROLL BUTTON INTO VIEW
@@ -186,10 +194,15 @@ public class NotesPage {
     }
 
     // =========================================================
-    // DOWNLOAD ALL PAGES
+    // DOWNLOAD ALL IMAGE PAGES
+    // LAST PAGE WILL BE SKIPPED
     // =========================================================
 
     public void downloadAllPages(NoteData note) {
+
+        // ---------------------------------------------------------
+        // DOWNLOAD FOLDER
+        // ---------------------------------------------------------
 
         String downloadFolder =
                 "downloaded-notes/" +
@@ -219,7 +232,7 @@ public class NotesPage {
         int downloadedPages = 0;
 
         // =========================================================
-        // LOOP THROUGH ALL PAGES
+        // PAGE LOOP
         // =========================================================
 
         while (true) {
@@ -227,19 +240,14 @@ public class NotesPage {
             try {
 
                 // -------------------------------------------------
-                // WAIT FOR CURRENT IMAGE
+                // GET PAGE COUNTER FIRST
                 // -------------------------------------------------
-
-                WebElement image =
-                        wait.until(
-                                ExpectedConditions.visibilityOfElementLocated(
-                                        noteImage
-                                )
-                        );
-
-                // -------------------------------------------------
-                // GET PAGE COUNTER
-                // Example: 1 / 58
+                // IMPORTANT:
+                // We check the page number BEFORE looking for
+                // an image.
+                //
+                // This allows us to skip the last page because
+                // the last page is not an image.
                 // -------------------------------------------------
 
                 String counter =
@@ -256,6 +264,9 @@ public class NotesPage {
 
                 // -------------------------------------------------
                 // SPLIT PAGE COUNTER
+                // Example:
+                //
+                // 1 / 58
                 // -------------------------------------------------
 
                 String[] parts =
@@ -277,6 +288,73 @@ public class NotesPage {
                 int totalPages =
                         Integer.parseInt(
                                 parts[1].trim()
+                        );
+
+                System.out.println(
+                        "Current page: " +
+                                currentPage +
+                                " of " +
+                                totalPages
+                );
+
+                // =================================================
+                // LAST PAGE CHECK
+                // =================================================
+                //
+                // Example:
+                //
+                // Current page = 58
+                // Total pages  = 58
+                //
+                // We do NOT search for image.
+                // We simply skip this page and finish.
+                // =================================================
+
+                if (currentPage >= totalPages) {
+
+                    System.out.println(
+                            "===================================="
+                    );
+
+                    System.out.println(
+                            "Last page detected."
+                    );
+
+                    System.out.println(
+                            "Skipping last page because " +
+                                    "it is not an image."
+                    );
+
+                    System.out.println(
+                            "Note: " +
+                                    note.getNoteName()
+                    );
+
+                    System.out.println(
+                            "Total pages downloaded: " +
+                                    downloadedPages
+                    );
+
+                    System.out.println(
+                            "Download completed successfully!"
+                    );
+
+                    System.out.println(
+                            "===================================="
+                    );
+
+                    break;
+                }
+
+                // -------------------------------------------------
+                // WAIT FOR CURRENT IMAGE
+                // -------------------------------------------------
+
+                WebElement image =
+                        wait.until(
+                                ExpectedConditions.visibilityOfElementLocated(
+                                        noteImage
+                                )
                         );
 
                 System.out.println(
@@ -343,38 +421,7 @@ public class NotesPage {
                 );
 
                 // -------------------------------------------------
-                // CHECK LAST PAGE
-                // -------------------------------------------------
-
-                if (currentPage >= totalPages) {
-
-                    System.out.println(
-                            "===================================="
-                    );
-
-                    System.out.println(
-                            "Download completed!"
-                    );
-
-                    System.out.println(
-                            "Note: " +
-                                    note.getNoteName()
-                    );
-
-                    System.out.println(
-                            "Total pages downloaded: " +
-                                    downloadedPages
-                    );
-
-                    System.out.println(
-                            "===================================="
-                    );
-
-                    break;
-                }
-
-                // -------------------------------------------------
-                // FIND NEXT BUTTON
+                // GET NEXT BUTTON
                 // -------------------------------------------------
 
                 WebElement next =
@@ -414,7 +461,9 @@ public class NotesPage {
                     try {
 
                         WebElement counterElement =
-                                driver.findElement(pageCounter);
+                                driver.findElement(
+                                        pageCounter
+                                );
 
                         String newCounter =
                                 counterElement.getText();
@@ -440,16 +489,6 @@ public class NotesPage {
                         return false;
                     }
                 });
-
-                // -------------------------------------------------
-                // WAIT FOR NEXT IMAGE
-                // -------------------------------------------------
-
-                wait.until(
-                        ExpectedConditions.visibilityOfElementLocated(
-                                noteImage
-                        )
-                );
 
                 System.out.println(
                         "Next page loaded successfully."
@@ -481,7 +520,8 @@ public class NotesPage {
     // JAVA 11 COMPATIBLE
     // =========================================================
 
-    private String getImageAsBase64(WebElement image) {
+    private String getImageAsBase64(
+            WebElement image) {
 
         try {
 

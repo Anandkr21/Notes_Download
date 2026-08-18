@@ -6,6 +6,10 @@ public class NoteData {
     private String buttonAriaLabel;
     private String folderName;
 
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
+
     public NoteData(
             String noteName,
             String buttonAriaLabel,
@@ -15,6 +19,10 @@ public class NoteData {
         this.buttonAriaLabel = buttonAriaLabel;
         this.folderName = folderName;
     }
+
+    // =========================================================
+    // GETTERS
+    // =========================================================
 
     public String getNoteName() {
         return noteName;
