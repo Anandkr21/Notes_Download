@@ -36,3 +36,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Configuration / sensitive data
+src/test/resources/config.properties
+
+# Downloaded notes
+downloaded-notes/
