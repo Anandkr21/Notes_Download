@@ -17,13 +17,21 @@ public class NotesPage {
     private WebDriver driver;
     private WebDriverWait wait;
 
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
+
     public NotesPage(WebDriver driver) {
+
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        this.wait = new WebDriverWait(
+                driver,
+                Duration.ofSeconds(20)
+        );
     }
 
     // =========================================================
-    // LOCATORS
+    // COMMON LOCATORS
     // =========================================================
 
     private By notesNavigation =
@@ -32,20 +40,10 @@ public class NotesPage {
     private By notesGrid =
             By.cssSelector(".notes-list-grid");
 
-    private By javaFundamentalsCard =
-            By.xpath(
-                    "//div[contains(@class,'note-list-card')]" +
-                            "[.//*[normalize-space()='Java Fundamentals']]"
-            );
-
-    private By javaFundamentalsButton =
-            By.cssSelector(
-                    "button[aria-label='Preview Java Fundamentals']"
-            );
-
     private By noteImage =
             By.cssSelector(".note-preview-page img");
 
+    // Example: 1 / 58
     private By pageCounter =
             By.cssSelector(".note-preview-navigation span");
 
@@ -54,314 +52,388 @@ public class NotesPage {
                     ".note-preview-navigation button:last-child"
             );
 
-
     // =========================================================
-    // DOWNLOAD FOLDER
-    // =========================================================
-
-    private File getDownloadFolder() {
-
-        String folderPath =
-                System.getProperty("user.dir")
-                        + File.separator
-                        + "downloaded-notes"
-                        + File.separator
-                        + "Java-Fundamentals";
-
-        File folder = new File(folderPath);
-
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        return folder;
-    }
-
-
-    // =========================================================
-    // CLICK NOTES
+    // NAVIGATE TO NOTES
     // =========================================================
 
     public void clickNotesNavigation() {
 
-        WebElement notes = wait.until(
+        wait.until(
                 ExpectedConditions.elementToBeClickable(
                         notesNavigation
                 )
-        );
-
-        notes.click();
+        ).click();
 
         wait.until(
-                ExpectedConditions.presenceOfElementLocated(
+                ExpectedConditions.visibilityOfElementLocated(
                         notesGrid
                 )
         );
 
-        System.out.println("Notes page opened.");
+        System.out.println(
+                "Notes page opened successfully."
+        );
     }
 
-
     // =========================================================
-    // OPEN JAVA FUNDAMENTALS
+    // OPEN NOTE
     // =========================================================
 
-    public void openJavaFundamentals() {
+    public void openNote(NoteData note) {
 
-        try {
+        // ---------------------------------------------------------
+        // DYNAMIC CARD LOCATOR
+        // ---------------------------------------------------------
 
-            WebElement card = wait.until(
-                    ExpectedConditions.presenceOfElementLocated(
-                            javaFundamentalsCard
-                    )
-            );
+        By noteCard =
+                By.xpath(
+                        "//div[contains(@class,'note-list-card')]" +
+                                "[.//h4[normalize-space()='" +
+                                note.getNoteName() +
+                                "']]"
+                );
 
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].scrollIntoView({block:'center'});",
-                    card
-            );
+        // ---------------------------------------------------------
+        // FIND CARD
+        // ---------------------------------------------------------
 
-            Thread.sleep(500);
+        WebElement card =
+                wait.until(
+                        ExpectedConditions.visibilityOfElementLocated(
+                                noteCard
+                        )
+                );
 
-            WebElement button = wait.until(
-                    ExpectedConditions.presenceOfElementLocated(
-                            javaFundamentalsButton
-                    )
-            );
+        // ---------------------------------------------------------
+        // SCROLL CARD INTO VIEW
+        // ---------------------------------------------------------
 
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].scrollIntoView({block:'center'});",
-                    button
-            );
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block:'center'});",
+                card
+        );
 
-            Thread.sleep(500);
+        // ---------------------------------------------------------
+        // DYNAMIC BUTTON LOCATOR
+        // ---------------------------------------------------------
 
-            /*
-             * JavaScript click avoids the
-             * ElementClickInterceptedException
-             * we encountered earlier.
-             */
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].click();",
-                    button
-            );
+        By previewButton =
+                By.cssSelector(
+                        "button[aria-label='" +
+                                note.getButtonAriaLabel() +
+                                "']"
+                );
 
-            System.out.println(
-                    "Java Fundamentals opened."
-            );
+        // ---------------------------------------------------------
+        // FIND BUTTON INSIDE CARD
+        // ---------------------------------------------------------
 
-            wait.until(
-                    ExpectedConditions.visibilityOfElementLocated(
-                            noteImage
-                    )
-            );
+        WebElement button =
+                card.findElement(previewButton);
 
-        } catch (Exception e) {
+        // ---------------------------------------------------------
+        // SCROLL BUTTON INTO VIEW
+        // ---------------------------------------------------------
 
-            System.out.println(
-                    "Could not open Java Fundamentals."
-            );
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block:'center'});",
+                button
+        );
 
-            e.printStackTrace();
+        // ---------------------------------------------------------
+        // WAIT UNTIL CLICKABLE
+        // ---------------------------------------------------------
 
-            throw new RuntimeException(e);
-        }
+        wait.until(
+                ExpectedConditions.elementToBeClickable(
+                        button
+                )
+        );
+
+        // ---------------------------------------------------------
+        // CLICK BUTTON
+        // ---------------------------------------------------------
+
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].click();",
+                button
+        );
+
+        // ---------------------------------------------------------
+        // WAIT FOR PREVIEW IMAGE
+        // ---------------------------------------------------------
+
+        wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        noteImage
+                )
+        );
+
+        // ---------------------------------------------------------
+        // WAIT FOR PAGE COUNTER
+        // ---------------------------------------------------------
+
+        wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        pageCounter
+                )
+        );
+
+        System.out.println(
+                "Opened note: " +
+                        note.getNoteName()
+        );
     }
 
-
     // =========================================================
-    // FIND LAST DOWNLOADED PAGE
+    // DOWNLOAD ALL PAGES
     // =========================================================
 
-    private int getLastDownloadedPage(File folder) {
+    public void downloadAllPages(NoteData note) {
 
-        int lastPage = 0;
+        String downloadFolder =
+                "downloaded-notes/" +
+                        note.getFolderName();
 
-        File[] files = folder.listFiles();
+        // ---------------------------------------------------------
+        // CREATE FOLDER
+        // ---------------------------------------------------------
 
-        if (files == null) {
-            return 0;
+        File folder =
+                new File(downloadFolder);
+
+        if (!folder.exists()) {
+
+            boolean created =
+                    folder.mkdirs();
+
+            if (!created) {
+
+                throw new RuntimeException(
+                        "Unable to create folder: " +
+                                downloadFolder
+                );
+            }
         }
 
-        for (File file : files) {
+        int downloadedPages = 0;
 
-            String fileName =
-                    file.getName();
+        // =========================================================
+        // LOOP THROUGH ALL PAGES
+        // =========================================================
 
-            if (!fileName.startsWith("Page-")) {
-                continue;
-            }
-
-            if (!fileName.toLowerCase().endsWith(".png")) {
-                continue;
-            }
+        while (true) {
 
             try {
 
-                String number =
-                        fileName
-                                .replace("Page-", "")
-                                .replace(".png", "");
-
-                int page =
-                        Integer.parseInt(number);
-
-                if (page > lastPage) {
-                    lastPage = page;
-                }
-
-            } catch (NumberFormatException ignored) {
-                // Ignore files that don't follow Page-XX.png
-            }
-        }
-
-        return lastPage;
-    }
-
-
-    // =========================================================
-    // DOWNLOAD ALL PAGES WITH RESUME
-    // =========================================================
-
-    public void downloadAllPages() {
-
-        try {
-
-            File folder =
-                    getDownloadFolder();
-
-            int lastDownloaded =
-                    getLastDownloadedPage(folder);
-
-            int startPage =
-                    lastDownloaded + 1;
-
-
-            System.out.println();
-            System.out.println(
-                    "=========================================="
-            );
-
-            System.out.println(
-                    "DOWNLOAD FOLDER:"
-            );
-
-            System.out.println(
-                    folder.getAbsolutePath()
-            );
-
-            System.out.println(
-                    "LAST DOWNLOADED PAGE: "
-                            + lastDownloaded
-            );
-
-            System.out.println(
-                    "STARTING FROM PAGE: "
-                            + startPage
-            );
-
-            System.out.println(
-                    "=========================================="
-            );
-
-
-            // =================================================
-            // DOWNLOAD LOOP
-            // =================================================
-
-            while (true) {
-
-                // ---------------------------------------------
-                // GET CURRENT PAGE COUNTER
-                // ---------------------------------------------
-
-                String currentCounter =
-                        wait.until(
-                                        ExpectedConditions
-                                                .visibilityOfElementLocated(
-                                                        pageCounter
-                                                )
-                                )
-                                .getText();
-
-                System.out.println();
-                System.out.println(
-                        "Current page: "
-                                + currentCounter
-                );
-
-
-                int currentPage =
-                        extractCurrentPage(
-                                currentCounter
-                        );
-
-                int totalPages =
-                        extractTotalPages(
-                                currentCounter
-                        );
-
-
-                // ---------------------------------------------
-                // IF CURRENT PAGE IS ALREADY DOWNLOADED
-                // MOVE FORWARD
-                // ---------------------------------------------
-
-                if (currentPage < startPage) {
-
-                    System.out.println(
-                            "Page "
-                                    + currentPage
-                                    + " already downloaded."
-                    );
-
-                    clickNextAndWait(
-                            currentCounter
-                    );
-
-                    continue;
-                }
-
-
-                // ---------------------------------------------
-                // GET CURRENT IMAGE
-                // ---------------------------------------------
+                // -------------------------------------------------
+                // WAIT FOR CURRENT IMAGE
+                // -------------------------------------------------
 
                 WebElement image =
                         wait.until(
-                                ExpectedConditions
-                                        .visibilityOfElementLocated(
-                                                noteImage
-                                        )
+                                ExpectedConditions.visibilityOfElementLocated(
+                                        noteImage
+                                )
                         );
 
+                // -------------------------------------------------
+                // GET PAGE COUNTER
+                // Example: 1 / 58
+                // -------------------------------------------------
 
-                // ---------------------------------------------
-                // WAIT FOR IMAGE TO FINISH LOADING
-                // ---------------------------------------------
+                String counter =
+                        wait.until(
+                                ExpectedConditions.visibilityOfElementLocated(
+                                        pageCounter
+                                )
+                        ).getText();
+
+                System.out.println(
+                        "Current page: " +
+                                counter
+                );
+
+                // -------------------------------------------------
+                // SPLIT PAGE COUNTER
+                // -------------------------------------------------
+
+                String[] parts =
+                        counter.split("/");
+
+                if (parts.length < 2) {
+
+                    throw new RuntimeException(
+                            "Invalid page counter: " +
+                                    counter
+                    );
+                }
+
+                int currentPage =
+                        Integer.parseInt(
+                                parts[0].trim()
+                        );
+
+                int totalPages =
+                        Integer.parseInt(
+                                parts[1].trim()
+                        );
+
+                System.out.println(
+                        "Downloading page " +
+                                currentPage +
+                                " of " +
+                                totalPages
+                );
+
+                // -------------------------------------------------
+                // GET IMAGE AS BASE64
+                // -------------------------------------------------
+
+                String base64Image =
+                        getImageAsBase64(image);
+
+                if (base64Image == null ||
+                        base64Image.startsWith("ERROR:")) {
+
+                    throw new RuntimeException(
+                            "Failed to get image for page " +
+                                    currentPage +
+                                    ". " +
+                                    base64Image
+                    );
+                }
+
+                // -------------------------------------------------
+                // CONVERT BASE64 TO BYTES
+                // -------------------------------------------------
+
+                byte[] imageBytes =
+                        Base64.getDecoder().decode(
+                                base64Image
+                        );
+
+                // -------------------------------------------------
+                // CREATE FILE PATH
+                // -------------------------------------------------
+
+                String filePath =
+                        downloadFolder +
+                                "/" +
+                                note.getFolderName() +
+                                "-Page-" +
+                                currentPage +
+                                ".png";
+
+                // -------------------------------------------------
+                // SAVE IMAGE
+                // -------------------------------------------------
+
+                try (FileOutputStream output =
+                             new FileOutputStream(filePath)) {
+
+                    output.write(imageBytes);
+                }
+
+                downloadedPages++;
+
+                System.out.println(
+                        "Downloaded: " +
+                                filePath
+                );
+
+                // -------------------------------------------------
+                // CHECK LAST PAGE
+                // -------------------------------------------------
+
+                if (currentPage >= totalPages) {
+
+                    System.out.println(
+                            "===================================="
+                    );
+
+                    System.out.println(
+                            "Download completed!"
+                    );
+
+                    System.out.println(
+                            "Note: " +
+                                    note.getNoteName()
+                    );
+
+                    System.out.println(
+                            "Total pages downloaded: " +
+                                    downloadedPages
+                    );
+
+                    System.out.println(
+                            "===================================="
+                    );
+
+                    break;
+                }
+
+                // -------------------------------------------------
+                // FIND NEXT BUTTON
+                // -------------------------------------------------
+
+                WebElement next =
+                        wait.until(
+                                ExpectedConditions.presenceOfElementLocated(
+                                        nextButton
+                                )
+                        );
+
+                // -------------------------------------------------
+                // SCROLL NEXT BUTTON INTO VIEW
+                // -------------------------------------------------
+
+                ((JavascriptExecutor) driver).executeScript(
+                        "arguments[0].scrollIntoView({block:'center'});",
+                        next
+                );
+
+                // -------------------------------------------------
+                // CLICK NEXT
+                // -------------------------------------------------
+
+                ((JavascriptExecutor) driver).executeScript(
+                        "arguments[0].click();",
+                        next
+                );
+
+                // -------------------------------------------------
+                // WAIT FOR PAGE NUMBER TO CHANGE
+                // -------------------------------------------------
+
+                final int previousPage =
+                        currentPage;
 
                 wait.until(driver -> {
 
                     try {
 
-                        WebElement img =
-                                driver.findElement(
-                                        noteImage
+                        WebElement counterElement =
+                                driver.findElement(pageCounter);
+
+                        String newCounter =
+                                counterElement.getText();
+
+                        if (newCounter == null ||
+                                !newCounter.contains("/")) {
+
+                            return false;
+                        }
+
+                        String[] newParts =
+                                newCounter.split("/");
+
+                        int newPage =
+                                Integer.parseInt(
+                                        newParts[0].trim()
                                 );
 
-                        Boolean loaded =
-                                (Boolean)
-                                        ((JavascriptExecutor)
-                                                driver)
-                                                .executeScript(
-                                                        "return arguments[0].complete " +
-                                                                "&& arguments[0].naturalWidth > 0;",
-                                                        img
-                                                );
-
-                        return Boolean.TRUE.equals(
-                                loaded
-                        );
+                        return newPage > previousPage;
 
                     } catch (Exception e) {
 
@@ -369,339 +441,102 @@ public class NotesPage {
                     }
                 });
 
+                // -------------------------------------------------
+                // WAIT FOR NEXT IMAGE
+                // -------------------------------------------------
 
-                // ---------------------------------------------
-                // DOWNLOAD IMAGE
-                // ---------------------------------------------
-
-                downloadImage(
-                        image,
-                        folder,
-                        currentPage
-                );
-
-
-                // ---------------------------------------------
-                // CHECK LAST PAGE
-                // ---------------------------------------------
-
-                if (currentPage >= totalPages) {
-
-                    System.out.println();
-                    System.out.println(
-                            "=========================================="
-                    );
-
-                    System.out.println(
-                            "ALL PAGES DOWNLOADED SUCCESSFULLY"
-                    );
-
-                    System.out.println(
-                            "TOTAL PAGES: "
-                                    + totalPages
-                    );
-
-                    System.out.println(
-                            "=========================================="
-                    );
-
-                    break;
-                }
-
-
-                // ---------------------------------------------
-                // CLICK NEXT
-                // ---------------------------------------------
-
-                clickNextAndWait(
-                        currentCounter
-                );
-            }
-
-
-        } catch (Exception e) {
-
-            System.out.println();
-            System.out.println(
-                    "=========================================="
-            );
-
-            System.out.println(
-                    "DOWNLOAD FAILED"
-            );
-
-            System.out.println(
-                    "=========================================="
-            );
-
-            e.printStackTrace();
-
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    // =========================================================
-    // CLICK NEXT AND WAIT FOR PAGE NUMBER TO CHANGE
-    // =========================================================
-
-    private void clickNextAndWait(
-            String oldCounter
-    ) throws InterruptedException {
-
-        WebElement next =
                 wait.until(
-                        ExpectedConditions
-                                .presenceOfElementLocated(
-                                        nextButton
-                                )
+                        ExpectedConditions.visibilityOfElementLocated(
+                                noteImage
+                        )
                 );
 
-
-        // Check whether Next is disabled
-        String disabled =
-                next.getAttribute("disabled");
-
-        if (!next.isEnabled()
-                || disabled != null) {
-
-            return;
-        }
-
-
-        ((JavascriptExecutor) driver)
-                .executeScript(
-                        "arguments[0].click();",
-                        next
-                );
-
-
-        // ---------------------------------------------
-        // WAIT FOR COUNTER TO CHANGE
-        // ---------------------------------------------
-
-        wait.until(driver -> {
-
-            try {
-
-                String newCounter =
-                        driver.findElement(
-                                pageCounter
-                        ).getText();
-
-                return !newCounter.equals(
-                        oldCounter
+                System.out.println(
+                        "Next page loaded successfully."
                 );
 
             } catch (Exception e) {
 
-                return false;
+                System.out.println(
+                        "ERROR while downloading note: " +
+                                note.getNoteName()
+                );
+
+                e.printStackTrace();
+
+                throw new RuntimeException(
+                        "Download failed for: " +
+                                note.getNoteName() +
+                                " after " +
+                                downloadedPages +
+                                " pages.",
+                        e
+                );
             }
-        });
-
-
-        Thread.sleep(500);
+        }
     }
 
-
     // =========================================================
-    // EXTRACT CURRENT PAGE
-    // =========================================================
-
-    private int extractCurrentPage(
-            String counter
-    ) {
-
-        /*
-         * Example:
-         *
-         * 44 / 58
-         */
-
-        String current =
-                counter.split("/")[0].trim();
-
-        return Integer.parseInt(current);
-    }
-
-
-    // =========================================================
-    // EXTRACT TOTAL PAGES
+    // CONVERT IMAGE TO BASE64
+    // JAVA 11 COMPATIBLE
     // =========================================================
 
-    private int extractTotalPages(
-            String counter
-    ) {
+    private String getImageAsBase64(WebElement image) {
 
-        /*
-         * Example:
-         *
-         * 44 / 58
-         */
+        try {
 
-        String total =
-                counter.split("/")[1].trim();
+            JavascriptExecutor js =
+                    (JavascriptExecutor) driver;
 
-        return Integer.parseInt(total);
-    }
+            String script =
+                    "const image = arguments[0];" +
+                            "const callback = arguments[arguments.length - 1];" +
 
+                            "fetch(image.src)" +
+                            ".then(response => response.blob())" +
 
-    // =========================================================
-    // DOWNLOAD IMAGE
-    // =========================================================
+                            ".then(blob => {" +
 
-    private void downloadImage(
-            WebElement image,
-            File folder,
-            int pageNumber
-    ) throws Exception {
+                            "    const reader = new FileReader();" +
 
+                            "    reader.onloadend = function() {" +
 
-        String fileName =
-                String.format(
-                        "Page-%02d.png",
-                        pageNumber
-                );
+                            "        const result = " +
+                            "reader.result.split(',')[1];" +
 
+                            "        callback(result);" +
 
-        File outputFile =
-                new File(
-                        folder,
-                        fileName
-                );
+                            "    };" +
 
+                            "    reader.readAsDataURL(blob);" +
 
-        // ---------------------------------------------
-        // DON'T DOWNLOAD AGAIN IF FILE EXISTS
-        // ---------------------------------------------
+                            "})" +
 
-        if (outputFile.exists()
-                && outputFile.length() > 0) {
+                            ".catch(error => {" +
 
-            System.out.println(
-                    "Already exists: "
-                            + fileName
-            );
+                            "    callback('ERROR:' + error);" +
 
-            return;
+                            "});";
+
+            Object result =
+                    js.executeAsyncScript(
+                            script,
+                            image
+                    );
+
+            if (result == null) {
+
+                return "ERROR: Image conversion returned null";
+            }
+
+            return result.toString();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            return "ERROR: " +
+                    e.getMessage();
         }
-
-
-        // ---------------------------------------------
-        // JAVASCRIPT TO GET BLOB IMAGE
-        // ---------------------------------------------
-
-        String javascript =
-                "var image = arguments[0];" +
-                        "var callback = arguments[arguments.length - 1];" +
-
-                        "fetch(image.src)" +
-
-                        ".then(function(response) {" +
-                        "    return response.blob();" +
-                        "})" +
-
-                        ".then(function(blob) {" +
-
-                        "    var reader = new FileReader();" +
-
-                        "    reader.onloadend = function() {" +
-                        "        callback(reader.result);" +
-                        "    };" +
-
-                        "    reader.readAsDataURL(blob);" +
-
-                        "})" +
-
-                        ".catch(function(error) {" +
-
-                        "    callback('ERROR:' + error);" +
-
-                        "});";
-
-
-        Object result =
-                ((JavascriptExecutor) driver)
-                        .executeAsyncScript(
-                                javascript,
-                                image
-                        );
-
-
-        if (result == null) {
-
-            throw new RuntimeException(
-                    "Image download returned NULL."
-            );
-        }
-
-
-        String base64Data =
-                result.toString();
-
-
-        if (base64Data.startsWith(
-                "ERROR:"
-        )) {
-
-            throw new RuntimeException(
-                    base64Data
-            );
-        }
-
-
-        // ---------------------------------------------
-        // REMOVE DATA URL HEADER
-        // ---------------------------------------------
-
-        int commaIndex =
-                base64Data.indexOf(",");
-
-
-        if (commaIndex == -1) {
-
-            throw new RuntimeException(
-                    "Invalid image data received."
-            );
-        }
-
-
-        String pureBase64 =
-                base64Data.substring(
-                        commaIndex + 1
-                );
-
-
-        // ---------------------------------------------
-        // CONVERT BASE64 → BYTES
-        // ---------------------------------------------
-
-        byte[] imageBytes =
-                Base64.getDecoder().decode(
-                        pureBase64
-                );
-
-
-        // ---------------------------------------------
-        // WRITE PNG FILE
-        // ---------------------------------------------
-
-        try (
-                FileOutputStream outputStream =
-                        new FileOutputStream(
-                                outputFile
-                        )
-        ) {
-
-            outputStream.write(
-                    imageBytes
-            );
-        }
-
-
-        System.out.println(
-                "Downloaded: "
-                        + fileName
-        );
     }
 }
